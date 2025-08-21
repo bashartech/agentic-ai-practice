@@ -8,7 +8,7 @@ import os
 gemini_api_key = os.getenv("GEMINI_API_KEY")
 gemini_base_url = os.getenv("GEMINI_BASE_URL")
 gemini_model = os.getenv("GEMINI_MODEL")
-
+tavily_api_key = os.getenv("TAVILY_API_KEY")
 if not gemini_api_key:
     raise ValueError("GEMINI_API_KEY is not set. Please ensure it is defined in your .env file.")
 

@@ -2,7 +2,31 @@ import asyncio
 import aiohttp
 from pydantic import BaseModel
 from agents import Agent, Runner, RunContextWrapper, function_tool, input_guardrail, GuardrailFunctionOutput, ModelSettings
-from configure.config import gemini_model 
+from configure.config import gemini_model, tavily_api_key
+from tavily import TavilyClient
+
+tavily_client = TavilyClient(api_key="TAVILY_API_KEY")
+
+# def tavily_search(query:str):
+#     print("Searching on web..")
+#     """Search The web using Tavily API."""
+
+#     result = tavily_client.search(query)
+#     return result
+@function_tool
+async def tavily_search(query: str):
+    """Search the web using Tavily API (async-safe)."""
+    print("Searching on web..")
+    url = "https://api.tavily.com/search"
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {tavily_api_key}"}
+    payload = {"query": query, "max_results": 5}
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, headers=headers, json=payload) as resp:
+            if resp.status != 200:
+                raise ValueError(f"Tavily error: {resp.status}")
+            data = await resp.json()
+            return data
 
 
 @function_tool
@@ -71,8 +95,10 @@ def detect_dynamic_instructions(prompt: str):
 # ---------------------------
 bot_agent = Agent(
     name="MediBot",
-    instructions="Placeholder — will be updated dynamically",
-    tools=[get_drug_info, get_outbreak_news],
+    instructions="""
+    - Placeholder — will be updated dynamically.
+    """,
+    tools=[get_drug_info, get_outbreak_news, tavily_search],
     model=gemini_model,
     input_guardrails=[prevent_harmful_medical],
     model_settings=ModelSettings(tool_choice="auto")
@@ -83,7 +109,7 @@ bot_agent = Agent(
 # MAIN FLOW
 # ---------------------------
 async def main():
-    user_query = input("Ask your medical question: ")
+    user_query = input("Ask your question: ")
 
     # Set instructions dynamically from query itself
     bot_agent.instructions = detect_dynamic_instructions(user_query)
